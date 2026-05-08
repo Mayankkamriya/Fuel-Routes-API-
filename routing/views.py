@@ -1,23 +1,27 @@
 from __future__ import annotations
+
 import logging
 from dataclasses import asdict
-from rest_framework.views import APIView
-from rest_framework.response import Response
+
+from django.conf import settings
+from django.shortcuts import render
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import FuelStation
 from .serializers import RouteRequestSerializer
-from .services.ors_client import ORSClient, ORSError
 from .services.optimizer import optimize
+from .services.ors_client import ORSClient, ORSError
 
 log = logging.getLogger(__name__)
 
 
 def _parse_point(s: str, ors: ORSClient) -> tuple[float, float]:
-    """Accept "lat,lon" or a free-form address (geocoded via ORS)."""
+    """Accept "lat,lon" or a free-form address (geocoded via ORS, cached)."""
     s = s.strip()
     if "," in s:
-        a, b = [t.strip() for t in s.split(",", 1)]
+        a, b = (t.strip() for t in s.split(",", 1))
         try:
             return float(a), float(b)
         except ValueError:
@@ -97,13 +101,15 @@ class RouteView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        return Response(
-            {
-                "start": {"input": start_text, "lat": start[0], "lon": start[1]},
-                "finish": {"input": finish_text, "lat": finish[0], "lon": finish[1]},
-                **asdict(result),
-            }
-        )
+        return Response({
+            "start": {"input": start_text, "lat": start[0], "lon": start[1]},
+            "finish": {"input": finish_text, "lat": finish[0], "lon": finish[1]},
+            "vehicle": {
+                "mpg": settings.VEHICLE_MPG,
+                "range_miles": settings.VEHICLE_RANGE_MILES,
+            },
+            **asdict(result),
+        })
 
 
 class HealthView(APIView):
@@ -114,18 +120,61 @@ class HealthView(APIView):
             "ok": True,
             "stations": total,
             "geocoded": geocoded,
-            "ors_configured": bool(__import__("django").conf.settings.ORS_API_KEY),
+            "ors_configured": bool(settings.ORS_API_KEY),
         })
 
 
-from django.shortcuts import render
-from django.conf import settings as _s
+class CitiesView(APIView):
+    """GET /api/cities/ – CONUS cities for the frontend typeahead.
+
+    Cached at module level so the CSV is parsed once per worker process.
+    """
+    _cache: list[dict] | None = None
+
+    def get(self, request):
+        if CitiesView._cache is None:
+            CitiesView._cache = _load_cities()
+        return Response({"cities": CitiesView._cache})
+
+
+def _load_cities() -> list[dict]:
+    """Read us_cities.csv → [{label, lat, lon, state}], CONUS only, deduped."""
+    import csv
+    path = settings.FUEL_DATA_DIR / "us_cities.csv"
+    non_conus = {"AK", "HI", "PR", "VI", "GU", "AS", "MP"}
+    out: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            state = (row.get("STATE_CODE") or "").strip()
+            city = (row.get("CITY") or "").strip()
+            if not state or not city or state in non_conus:
+                continue
+            key = (city.lower(), state)
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
+                lat = float(row["LATITUDE"])
+                lon = float(row["LONGITUDE"])
+            except (KeyError, ValueError):
+                continue
+            out.append({
+                "label": f"{city}, {state}",
+                "lat": lat,
+                "lon": lon,
+                "state": state,
+            })
+    out.sort(key=lambda c: c["label"])
+    return out
+
 
 def home(request):
     total = FuelStation.objects.count()
     return render(request, "index.html", {
         "stations": total,
-        "ors_configured": bool(_s.ORS_API_KEY),
-        "mpg": _s.VEHICLE_MPG,
-        "range_mi": int(_s.VEHICLE_RANGE_MILES),
+        "ors_configured": bool(settings.ORS_API_KEY),
+        "mpg": settings.VEHICLE_MPG,
+        "range_mi": int(settings.VEHICLE_RANGE_MILES),
     })

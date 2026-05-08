@@ -43,6 +43,17 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 }
 
+# In-process cache is plenty for ORS responses (few-KB JSON, hot keys).
+# Swap to django_redis in production if multiple workers need to share it.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "fuel-route-cache",
+        "TIMEOUT": 60 * 60 * 6,
+        "OPTIONS": {"MAX_ENTRIES": 2048},
+    }
+}
+
 # Domain config
 ORS_API_KEY = os.getenv("ORS_API_KEY", "")
 ORS_BASE_URL = "https://api.openrouteservice.org"
