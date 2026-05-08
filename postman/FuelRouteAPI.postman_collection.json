@@ -1,0 +1,37 @@
+{
+  "info": {
+    "name": "Fuel Route API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Route - POST",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {"raw": "http://127.0.0.1:8000/api/route/", "protocol": "http",
+                "host": ["127", "0", "0", "1"], "port": "8000",
+                "path": ["api", "route", ""]},
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Los Angeles, CA\",\n  \"finish\": \"New York, NY\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Route - GET",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/route/?start=Dallas, TX&finish=Atlanta, GA",
+          "protocol": "http", "host": ["127", "0", "0", "1"], "port": "8000",
+          "path": ["api", "route", ""],
+          "query": [
+            {"key": "start", "value": "Dallas, TX"},
+            {"key": "finish", "value": "Atlanta, GA"}
+          ]
+        }
+      }
+    }
+  ]
+}

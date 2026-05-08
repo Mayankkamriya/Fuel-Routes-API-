@@ -1,0 +1,33 @@
+{
+  "info": {
+    "name": "Fuel Route API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "http://127.0.0.1:8000/api/health/", "protocol": "http", "host": ["127","0","0","1"], "port": "8000", "path": ["api","health",""] }
+      }
+    },
+    {
+      "name": "Route — addresses",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\n  \"start\": \"Los Angeles, CA\",\n  \"finish\": \"New York, NY\"\n}"},
+        "url": { "raw": "http://127.0.0.1:8000/api/route/", "protocol": "http", "host": ["127","0","0","1"], "port": "8000", "path": ["api","route",""] }
+      }
+    },
+    {
+      "name": "Route — coordinates",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\n  \"start\": \"34.0522,-118.2437\",\n  \"finish\": \"40.7128,-74.0060\"\n}"},
+        "url": { "raw": "http://127.0.0.1:8000/api/route/", "protocol": "http", "host": ["127","0","0","1"], "port": "8000", "path": ["api","route",""] }
+      }
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Fuel Route API</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #121833;
+    --panel-2: #0f1530;
+    --text: #e7ecff;
+    --muted: #8a93b8;
+    --accent: #6ee7b7;
+    --accent-2: #60a5fa;
+    --border: rgba(255,255,255,.08);
+    --code-bg: #0a0f24;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 56px 24px 80px; }
+  header { display:flex; align-items:center; gap:14px; margin-bottom: 8px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:grid; place-items:center; color:#0b1020; font-weight:800; font-size:18px;
+  }
+  h1 { font-size: 28px; margin: 0; letter-spacing: -.01em; }
+  .tag { color: var(--muted); margin-top: 4px; }
+  .grid { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-top: 28px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 14px; color: var(--accent); letter-spacing:.04em; text-transform:uppercase; }
+  .card p { margin: 0; color: var(--text); }
+  .stat { font-size: 22px; font-weight: 700; }
+  section { margin-top: 36px; }
+  section h2 { font-size: 18px; margin: 0 0 12px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; overflow:auto; font-size: 13px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  .badge { display:inline-block; padding: 4px 10px; border-radius: 999px;
+    background: rgba(110,231,183,.12); color: var(--accent); font-size: 12px; border:1px solid rgba(110,231,183,.25); }
+  .endpoint { display:flex; gap:10px; align-items:center; padding:10px 12px;
+    background: var(--panel-2); border: 1px solid var(--border); border-radius:10px; margin-bottom:8px; }
+  .method { font-weight:700; padding: 2px 8px; border-radius: 6px; font-size:12px; }
+  .post { background: rgba(96,165,250,.15); color: var(--accent-2); }
+  .get  { background: rgba(110,231,183,.15); color: var(--accent); }
+  footer { margin-top: 48px; color: var(--muted); font-size: 12px; text-align:center; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">F</div>
+    <div>
+      <h1>Fuel Route API</h1>
+      <div class="tag">USA truck-route fuel-stop optimizer · Django + DRF</div>
+    </div>
+  </header>
+
+  <div class="row" style="margin-top:14px;">
+    <span class="badge">Status: {% if ors_configured %}ORS configured{% else %}ORS key missing{% endif %}</span>
+    <span class="badge">Stations loaded: {{ stations }}</span>
+    <span class="badge">Vehicle: {{ mpg }} MPG · {{ range_mi }} mi range</span>
+  </div>
+
+  <div class="grid">
+    <div class="card"><h3>Stations</h3><div class="stat">{{ stations }}</div><p>Geocoded fuel stations in DB</p></div>
+    <div class="card"><h3>Range</h3><div class="stat">{{ range_mi }} mi</div><p>Max distance per tank</p></div>
+    <div class="card"><h3>Efficiency</h3><div class="stat">{{ mpg }} MPG</div><p>Used to compute fuel cost</p></div>
+  </div>
+
+  <section>
+    <h2>Endpoints</h2>
+    <div class="endpoint"><span class="method get">GET</span> <code>/api/health/</code> — service & data status</div>
+    <div class="endpoint"><span class="method post">POST</span> <code>/api/route/</code> — optimal fuel stops between two US points</div>
+  </section>
+
+  <section>
+    <h2>Try it</h2>
+    <pre><code>curl -X POST http://127.0.0.1:8000/api/route/ \
+  -H "Content-Type: application/json" \
+  -d '{"start":"Los Angeles, CA","finish":"New York, NY"}'</code></pre>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <p>One call to OpenRouteService returns the full driving polyline. A KDTree maps
+    every loaded fuel station onto that polyline, filters those within a narrow corridor,
+    and a greedy strategy picks the cheapest reachable station within each tank window.
+    Total cost = gallons × station price.</p>
+  </section>
+
+  <footer>Fuel Route API · open the project README for setup instructions.</footer>
+</div>
+</body>
+</html>
